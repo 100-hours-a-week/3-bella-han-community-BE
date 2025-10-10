@@ -39,4 +39,9 @@ public class UserService {
 
         return  UserResponseDTO.of(saved);
     }
+
+    public User findByEmailOrThrow(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+    }
 }

@@ -28,7 +28,7 @@ public class ApiResponse<T> {
         this.httpStatus = (httpStatus != null) ? httpStatus : HttpStatus.OK;
     }
 
-    /* 성공 */
+    /* 성공 (데이터 포함) */
     public static <T> ApiResponse<T> success(CommonCode code, T data) {
         return ApiResponse.<T>builder()
                 .success(true)
@@ -39,8 +39,9 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static ApiResponse<Void> success(CommonCode code) {
-        return ApiResponse.<Void>builder()
+    /* 성공 (데이터 없음 — Void 자동 대응) */
+    public static <T> ApiResponse<T> success(CommonCode code) {
+        return ApiResponse.<T>builder()
                 .success(true)
                 .code(code.getCode())
                 .message(code.getMessage())
@@ -48,9 +49,9 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    /* 실패 */
-    public static ApiResponse<Void> error(CommonCode code) {
-        return ApiResponse.<Void>builder()
+    /* 실패 (데이터 없음 — Void 자동 대응) */
+    public static <T> ApiResponse<T> error(CommonCode code) {
+        return ApiResponse.<T>builder()
                 .success(false)
                 .code(code.getCode())
                 .message(code.getMessage())
@@ -58,8 +59,9 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static ApiResponse<Void> error(CommonCode code, String customMessage) {
-        return ApiResponse.<Void>builder()
+    /* 실패 (커스텀 메시지 포함) */
+    public static <T> ApiResponse<T> error(CommonCode code, String customMessage) {
+        return ApiResponse.<T>builder()
                 .success(false)
                 .code(code.getCode())
                 .message(customMessage)
@@ -67,7 +69,7 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    /* ResponseEntity 변환 */
+    /*  ResponseEntity 변환 */
     public ResponseEntity<ApiResponse<T>> toResponseEntity() {
         return ResponseEntity.status(this.httpStatus).body(this);
     }
