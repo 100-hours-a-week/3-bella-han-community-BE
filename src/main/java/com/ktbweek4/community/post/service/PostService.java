@@ -1,9 +1,8 @@
 package com.ktbweek4.community.post.service;
 
+import com.ktbweek4.community.common.SliceResponse;
 import com.ktbweek4.community.file.LocalFileStorage;
-import com.ktbweek4.community.post.dto.PostRequestDTO;
-import com.ktbweek4.community.post.dto.PostResponseDTO;
-import com.ktbweek4.community.post.dto.PostUpdateRequestDTO;
+import com.ktbweek4.community.post.dto.*;
 import com.ktbweek4.community.post.entity.PostEntity;
 import com.ktbweek4.community.post.entity.PostImageEntity;
 import com.ktbweek4.community.post.repository.PostRepository;
@@ -35,6 +34,8 @@ public class PostService {
         // 1) 로그인 사용자 확인
         var session = request.getSession(false);
         if (session == null) throw new IllegalStateException("로그인이 필요합니다.");
+
+        // 게시글을 생성, 작성자의 유저 엔티티가 필요
         User loginUser = (User) session.getAttribute("LOGIN_USER");
         if (loginUser == null) throw new IllegalStateException("로그인이 필요합니다.");
 
@@ -77,6 +78,8 @@ public class PostService {
         // 1) 로그인 사용자 확인
         var session = request.getSession(false);
         if (session == null) throw new IllegalStateException("로그인이 필요합니다.");
+
+        // 게시글 수정, 수정하는 작성자의 유저 엔티티가 필요, 왜냐하면 게시글을 작성한 사람만 수정할 수 있기 때문
         User loginUser = (User) session.getAttribute("LOGIN_USER");
         if (loginUser == null) throw new IllegalStateException("로그인이 필요합니다.");
 
@@ -151,5 +154,55 @@ public class PostService {
         em.flush();
         // 9) 응답
         return PostResponseDTO.of(post);
+    }
+
+    public void deletePost(Long postId, HttpServletRequest request) {
+        var session = request.getSession(false);
+        if (session == null) throw new IllegalStateException("로그인이 필요합니다.");
+
+        // 작성한 사람만 삭제할 수 있는 보안장치 필요
+        User loginUser = (User) session.getAttribute("LOGIN_USER");
+        if (loginUser == null) throw new IllegalStateException("로그인이 필요합니다.");
+
+        // 게시글 조회
+        PostEntity post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
+        // 삭제할 게시글의 작성자와 현재 로그인한 사람이 일치하는지 확인
+        if (!post.getAuthor().getUserId().equals(loginUser.getUserId())) {
+            throw new IllegalStateException("게시글 작성자만 삭제할 수 있습니다.");
+        }
+
+        postRepository.deleteById(postId);
+    }
+
+    public PostDetailResponseDTO getPost(Long postId, HttpServletRequest request) {
+        var session = request.getSession(false);
+        if (session == null) throw new IllegalStateException("로그인이 필요합니다.");
+
+        PostEntity post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
+        return PostDetailResponseDTO.of(post);
+    }
+
+    public SliceResponse<PostListItemDTO> getPostsSlice(Long cursor, int size) {
+        // size+1을 가져와서 hasNext 판정하는 패턴도 있음.
+        List<PostListItemDTO> items = postRepository.fetchSliceByCursor(cursor, size + 1);
+
+        boolean hasNext = false;
+        Long nextCursor = null;
+
+        if (items.size() > size) {
+            hasNext = true;
+            var last = items.remove(items.size() - 1); // 초과분 제거
+            // nextCursor는 현재 리스트의 마지막 postId로 (역정렬 기준이므로 가장 작은 id)
+        }
+
+        if (!items.isEmpty()) {
+            nextCursor = items.get(items.size() - 1).getPostId();
+        }
+
+        return new SliceResponse<>(items, hasNext, nextCursor);
     }
 }

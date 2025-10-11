@@ -37,6 +37,7 @@ public enum CommonCode {
     POST_DELETED("P205", "게시글이 삭제되었습니다.", HttpStatus.OK),
     POST_NOT_FOUND("P404", "게시글을 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
     POST_FORBIDDEN("P403", "게시글 작성자가 아닙니다.", HttpStatus.FORBIDDEN),
+    POST_VIEW("P206", "게시글 조회 성공했습니다.", HttpStatus.OK),
 
     /* ====== Comment 관련 코드 ====== */
     COMMENT_CREATED("CM201", "댓글이 등록되었습니다.", HttpStatus.CREATED),
