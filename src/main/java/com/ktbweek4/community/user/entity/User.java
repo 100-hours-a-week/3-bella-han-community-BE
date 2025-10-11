@@ -1,6 +1,7 @@
 package com.ktbweek4.community.user.entity;
 
 import com.ktbweek4.community.comment.entity.Comment;
+import com.ktbweek4.community.common.BaseTimeEntity;
 import com.ktbweek4.community.post.entity.PostEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -15,7 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Table(name = "users") // 실제 디비 ㅔㅌ이블 이름과 매핑
-public class User {
+public class User extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // auto_increment
     @Column(name = "user_id")

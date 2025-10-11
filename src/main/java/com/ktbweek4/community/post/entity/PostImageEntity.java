@@ -1,15 +1,18 @@
 package com.ktbweek4.community.post.entity;
 
+import com.ktbweek4.community.common.BaseTimeEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "postimages")
 @Getter @Setter
-public class PostImageEntity {
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
+public class PostImageEntity extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,9 +20,6 @@ public class PostImageEntity {
 
     @Column(name = "post_image_url", length = 255, nullable = false)
     private String postImageUrl;
-
-    @Column(name = "create_at", insertable = false, updatable = false)
-    private LocalDateTime createAt;
 
     @Column(name = "order_index")
     private Byte orderIndex;

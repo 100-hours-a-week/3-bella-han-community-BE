@@ -20,6 +20,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private static final String[] PUBLIC_WHITELIST = {
+            // Swagger
+            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+            // Auth/회원가입 공개
+            "/api/v1/auth/login",
+            "/api/v1/users/signup",
+            "/files/**"
+    };
+
+
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -34,18 +45,9 @@ public class SecurityConfig {
 
                 // 경로별 권한
                 .authorizeHttpRequests(auth -> auth
-                        // Swagger
-                        .requestMatchers("/v3/api-docs/**","/swagger-ui/**","/swagger-ui.html").permitAll()
-
-                        // 회원가입/로그인 공개
-                        .requestMatchers(HttpMethod.POST, "/api/v1/users/signup").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
-
-                        // 로그아웃/내정보는 인증 필요
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
-                        .requestMatchers(HttpMethod.GET,  "/api/v1/users/me").authenticated()
-
-                        // 그 외 보호
+                        // 화이트리스트만 permitAll
+                        .requestMatchers(PUBLIC_WHITELIST).permitAll()
+                        // 그 외 전부 인증 필요
                         .anyRequest().authenticated()
                 )
 

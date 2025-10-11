@@ -1,0 +1,155 @@
+package com.ktbweek4.community.post.service;
+
+import com.ktbweek4.community.file.LocalFileStorage;
+import com.ktbweek4.community.post.dto.PostRequestDTO;
+import com.ktbweek4.community.post.dto.PostResponseDTO;
+import com.ktbweek4.community.post.dto.PostUpdateRequestDTO;
+import com.ktbweek4.community.post.entity.PostEntity;
+import com.ktbweek4.community.post.entity.PostImageEntity;
+import com.ktbweek4.community.post.repository.PostRepository;
+import com.ktbweek4.community.user.entity.User;
+import jakarta.persistence.EntityManager;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class PostService {
+
+    private final PostRepository postRepository;
+    private final LocalFileStorage fileStorage;
+    private final EntityManager em;
+
+    /** 생성: 제목/내용 + 이미지 업로드 */
+    public PostResponseDTO createPost(PostRequestDTO dto,
+                                      List<MultipartFile> images,
+                                      HttpServletRequest request) throws Exception {
+
+        // 1) 로그인 사용자 확인
+        var session = request.getSession(false);
+        if (session == null) throw new IllegalStateException("로그인이 필요합니다.");
+        User loginUser = (User) session.getAttribute("LOGIN_USER");
+        if (loginUser == null) throw new IllegalStateException("로그인이 필요합니다.");
+
+        // 2) 게시글 저장
+        PostEntity post = PostEntity.builder()
+                .title(dto.getTitle())
+                .content(dto.getContent())
+                .author(loginUser)
+                .build();
+        post = postRepository.save(post);
+
+        // 3) 이미지 저장 (있으면)
+        byte order = 0;
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile img : images) {
+                if (img == null || img.isEmpty()) continue;
+
+                var stored = fileStorage.save(img); // 로컬 저장 + 공개 URL
+                PostImageEntity image = PostImageEntity.builder()
+                        .postImageUrl(stored.publicUrl())
+                        .orderIndex(order)
+                        .isPrimary(order == 0) // 첫 번째 이미지를 대표로
+                        .build();
+
+                post.addImage(image);
+                order++;
+            }
+        }
+        em.flush();
+        // 4) 응답
+        return PostResponseDTO.of(post);
+    }
+
+    /** 수정: 제목/내용, 이미지 추가/삭제, 대표 이미지 설정 */
+    public PostResponseDTO updatePost(Long postId,
+                                      PostUpdateRequestDTO dto,
+                                      List<MultipartFile> newImages,
+                                      HttpServletRequest request) throws Exception {
+
+        // 1) 로그인 사용자 확인
+        var session = request.getSession(false);
+        if (session == null) throw new IllegalStateException("로그인이 필요합니다.");
+        User loginUser = (User) session.getAttribute("LOGIN_USER");
+        if (loginUser == null) throw new IllegalStateException("로그인이 필요합니다.");
+
+        // 2) 게시글 조회
+        PostEntity post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+
+        // 3) 작성자 확인
+        if (!post.getAuthor().getUserId().equals(loginUser.getUserId())) {
+            throw new IllegalStateException("게시글 작성자만 수정할 수 있습니다.");
+        }
+
+        // dto null 안전 처리 (이미지만 보낼 수 있으므로)
+        if (dto == null) dto = new PostUpdateRequestDTO();
+
+        // 4) 제목/내용 수정
+        if (dto.getTitle() != null)  post.setTitle(dto.getTitle());
+        if (dto.getContent() != null) post.setContent(dto.getContent());
+
+        // 5) 이미지 삭제
+        if (dto.getRemoveImageIds() != null && !dto.getRemoveImageIds().isEmpty()) {
+            Map<Long, PostImageEntity> current = post.getPostImages()
+                    .stream().collect(Collectors.toMap(PostImageEntity::getPostImageId, it -> it));
+
+            for (Long imgId : dto.getRemoveImageIds()) {
+                PostImageEntity image = current.get(imgId);
+                if (image != null) {
+                    try { fileStorage.deleteByUrl(image.getPostImageUrl()); } catch (Exception ignore) {}
+                    post.removeImage(image); // orphanRemoval=true로 DB행 삭제
+                }
+            }
+        }
+
+        // 6) 새 이미지 추가
+        byte nextOrder = (byte) post.getPostImages().size();
+        if (newImages != null && !newImages.isEmpty()) {
+            for (MultipartFile img : newImages) {
+                if (img == null || img.isEmpty()) continue;
+
+                var stored = fileStorage.save(img);
+
+                PostImageEntity image = PostImageEntity.builder()
+                        .postImageUrl(stored.publicUrl())
+                        .orderIndex(nextOrder++)
+                        .isPrimary(false)
+                        .build();
+
+                post.addImage(image);
+            }
+        }
+
+        // 7) 대표 이미지 설정
+        if (dto.getPrimaryImageId() != null) {
+            Long primaryId = dto.getPrimaryImageId();
+            for (PostImageEntity img : post.getPostImages()) {
+                img.setIsPrimary(Objects.equals(img.getPostImageId(), primaryId));
+            }
+        } else {
+            boolean hasPrimary = post.getPostImages().stream().anyMatch(PostImageEntity::getIsPrimary);
+            if (!hasPrimary && !post.getPostImages().isEmpty()) {
+                post.getPostImages().get(0).setIsPrimary(true);
+            }
+        }
+
+        // 8) orderIndex 재정렬
+        byte idx = 0;
+        for (PostImageEntity img : post.getPostImages().stream()
+                .sorted(Comparator.comparing(PostImageEntity::getOrderIndex, Comparator.nullsLast(Byte::compare)))
+                .collect(Collectors.toList())) {
+            img.setOrderIndex(idx++);
+        }
+        em.flush();
+        // 9) 응답
+        return PostResponseDTO.of(post);
+    }
+}

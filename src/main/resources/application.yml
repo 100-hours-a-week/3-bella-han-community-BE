@@ -23,6 +23,11 @@ spring:
       path: /swagger-ui.html
       enabled: true
 
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
 logging:
   level:
     org.hibernate.SQL: debug
@@ -31,3 +36,8 @@ logging:
     org.hibernate.tool.hbm2ddl: debug
     org.hibernate.orm.jdbc.bind: trace
     org.springframework.security: DEBUG
+
+app:
+  upload:
+    dir: /Users/chaerim/workspace/community/uploads   # ← 운영/개발 경로 맞게 수정
+    public-base-url: http://localhost:8080/files      # 정적 리소스 핸들러와 맞춰 사용
