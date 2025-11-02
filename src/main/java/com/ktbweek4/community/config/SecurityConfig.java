@@ -44,11 +44,12 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 // CSRF 보호 설정: 쿠키 기반 토큰 사용, 로그인/회원가입은 CSRF 검증 제외
-                .csrf(csrf -> csrf
-                        //.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .csrfTokenRepository(cookieCsrfTokenRepository())
-                        .ignoringRequestMatchers("/api/v1/auth/login", "/api/v1/users/signup")
-                )
+//                .csrf(csrf -> csrf
+//                        //.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+//                        .csrfTokenRepository(cookieCsrfTokenRepository())
+//                        .ignoringRequestMatchers("/api/v1/auth/login", "/api/v1/users/signup")
+//                )
+                .csrf(csrf -> csrf.disable())
 
                 // CORS 설정: 다른 도메인(localhost:5500)에서의 요청 허용
                 // credentials(쿠키) 포함 요청 가능하도록 설정
@@ -84,17 +85,17 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Bean
-    public CookieCsrfTokenRepository cookieCsrfTokenRepository() {
-        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
-        repository.setCookiePath("/");
-        // SameSite 속성으로 추가 CSRF 보호 (Spring Security 6.1+)
-        repository.setCookieCustomizer(cookie -> cookie
-                .sameSite("Lax")  // Strict 또는 Lax 권장
-                .secure(false)     // HTTPS에서만 전송 (프로덕션)
-        );
-        return repository;
-    }
+//    @Bean
+//    public CookieCsrfTokenRepository cookieCsrfTokenRepository() {
+//        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+//        repository.setCookiePath("/");
+//        // SameSite 속성으로 추가 CSRF 보호 (Spring Security 6.1+)
+//        repository.setCookieCustomizer(cookie -> cookie
+//                .sameSite("Lax")  // Strict 또는 Lax 권장
+//                .secure(false)     // HTTPS에서만 전송 (프로덕션)
+//        );
+//        return repository;
+//    }
 
 
     // CORS 설정: 프론트엔드 도메인에서 백엔드 API 호출 허용
