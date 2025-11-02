@@ -68,9 +68,12 @@ public class PostController {
     @GetMapping("/{postId}")
     public ResponseEntity<ApiResponse<PostDetailResponseDTO>> getPost(
             @PathVariable Long postId,
-            HttpServletRequest request
+            @AuthenticationPrincipal CustomUserDetails userDetails
     ) throws Exception {
-        PostDetailResponseDTO getPost = postService.getPost(postId, request);
+        postService.increaseView(postId);
+
+        Long currentUserId = (userDetails != null) ? userDetails.getUser().getUserId() : null;
+        PostDetailResponseDTO getPost = postService.getPost(postId, currentUserId);
         return ApiResponse.success(CommonCode.POST_VIEW, getPost).toResponseEntity();
     }
 

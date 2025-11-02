@@ -10,6 +10,7 @@ import com.ktbweek4.community.file.LocalFileStorage;
 import com.ktbweek4.community.post.dto.*;
 import com.ktbweek4.community.post.entity.PostEntity;
 import com.ktbweek4.community.post.entity.PostImageEntity;
+import com.ktbweek4.community.post.like.repository.PostLikeRepository;
 import com.ktbweek4.community.post.repository.PostRepository;
 import com.ktbweek4.community.user.dto.CustomUserDetails;
 import com.ktbweek4.community.user.entity.User;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class PostService {
 
+    private final PostLikeRepository postLikeRepository;
     private final PostRepository postRepository;
     private final LocalFileStorage fileStorage;
     private final EntityManager em;
@@ -190,12 +192,19 @@ public class PostService {
         postRepository.deleteById(postId);
     }
 
-    public PostDetailResponseDTO getPost(Long postId, HttpServletRequest request) {
+    public PostDetailResponseDTO getPost(Long postId, @Nullable Long currentUserId) {
         // 게시글 상세 조회는 공개 (인증 불필요)
         PostEntity post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
 
-        return PostDetailResponseDTO.of(post);
+        boolean likedByMe = false;
+        if (currentUserId != null) {
+            likedByMe = postLikeRepository.existsByPost_PostIdAndUser_UserId(postId, currentUserId);
+        }
+
+        long likesCount = postLikeRepository.countByPost_PostId(postId);
+
+        return PostDetailResponseDTO.of(post, likedByMe, likesCount);
     }
 
     public SliceResponse<PostListItemDTO> getPostsSlice(Long cursor, int size) {
@@ -287,7 +296,7 @@ public class PostService {
                                 "from PostEntity p " +
                                 "left join fetch p.comments c " + // PostEntity 한 개를 조회할 때, 그 게시글에 연결된 댓글들도 한 번에 가져옴
                                 "left join fetch c.author a " + // 댓글의 작성자도 함께 가져옴, Comment와 연결된 User엔티티
-                                "where p.id = :postId", PostEntity.class)
+                                "where p.postId = :postId", PostEntity.class)
                 .setParameter("postId", postId)
                 .getSingleResult(); // 하나의 게시글에 속한 댓글들
 
@@ -296,5 +305,13 @@ public class PostService {
         return post.getComments().stream()
                 .map(c -> CommentResponseDTO.of(c, currentUserId))
                 .toList();
+    }
+
+    // 조회수
+    public void increaseView(Long postId) {
+        int updated = postRepository.incrementViewCount(postId);
+        if (updated == 0) {
+            throw new IllegalArgumentException("게시글을 찾을 수 없습니다.");
+        }
     }
 }
