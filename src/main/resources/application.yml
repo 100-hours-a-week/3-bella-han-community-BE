@@ -42,7 +42,15 @@ logging:
 
 jwt:
   secret: dGhpc2lzbXlzdXBlcnNlY3JldGtleTEyMzQ1Njc4OTAxMjM0NTY3ODkw  # base64 인코딩된 32바이트 이상 키
-  expiration: 3600000 # 1시간 (ms)
+  access-expiration: 3600000          # 1시간(ms)
+  refresh-expiration: 1209600000      # 14일(ms)
+
+security:
+  cookie:
+    domain: "localhost"               # 로컬 개발 환경
+    path: "/"
+    secure: false                     # 로컬(http)에서는 false, 배포(https)에서는 true
+    same-site: "Lax"                  # Lax 권장ㅍ
 
 app:
   upload:

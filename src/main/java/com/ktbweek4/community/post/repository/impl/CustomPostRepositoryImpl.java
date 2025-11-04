@@ -39,6 +39,7 @@ public class CustomPostRepositoryImpl implements CustomPostRepository {
                         post.author.userId,
                         post.viewCount,
                         post.likesCount,
+                        post.commentsCount,
                         post.author.nickname,
                         image.postImageUrl, // 대표 이미지일 때만 값 나옴
                         post.createdAt

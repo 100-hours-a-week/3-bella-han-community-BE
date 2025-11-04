@@ -8,60 +8,91 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.time.Instant;
 import java.util.Date;
+import java.util.UUID;
+
 
 @Component
 public class JwtTokenProvider {
 
     private final Key key;
-    private final long validityInMilliseconds;
+    private final long accessValidityMs;
+    private final long refreshValidityMs;
+
 
     public JwtTokenProvider(
-            @Value("${jwt.secret}") String secretKey,
-            @Value("${jwt.expiration}") long validityInMilliseconds
+            @Value("${jwt.secret}") String secretKeyBase64,
+            @Value("${jwt.access-expiration}") long accessValidityMs,
+            @Value("${jwt.refresh-expiration}") long refreshValidityMs
     ) {
-        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));
-        this.validityInMilliseconds = validityInMilliseconds;
+        byte[] secret = Decoders.BASE64.decode(secretKeyBase64);
+        if (secret.length < 32) throw new IllegalArgumentException("jwt.secret must be >= 256-bit base64");
+        this.key = Keys.hmacShaKeyFor(secret);
+        this.accessValidityMs = accessValidityMs;
+        this.refreshValidityMs = refreshValidityMs;
     }
 
-    // 토큰 생성
-    public String generateToken(CustomUserDetails userDetails) {
+    public String generateAccessToken(CustomUserDetails user) {
+        return buildToken(user, accessValidityMs, null);
+    }
+
+    public String generateRefreshToken(CustomUserDetails user, String jti) {
+        return buildToken(user, refreshValidityMs, jti);
+    }
+
+
+
+    private String buildToken(CustomUserDetails user, long validityMs, String jtiOrNull) {
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + validityInMilliseconds);
+        Date exp = new Date(now.getTime() + validityMs);
 
-        return Jwts.builder()
-                .setSubject(userDetails.getUsername()) // 이메일
-                .claim("userId", userDetails.getUser().getUserId())
-                .claim("nickname", userDetails.getUser().getNickname())
+        JwtBuilder b = Jwts.builder()
+                .setSubject(user.getUsername()) // email
+                .claim("userId", user.getUser().getUserId())
+                .claim("nickname", user.getUser().getNickname())
                 .setIssuedAt(now)
-                .setExpiration(expiry)
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
+                .setExpiration(exp)
+                .signWith(key, SignatureAlgorithm.HS256);
+
+        if (jtiOrNull != null) b.setId(jtiOrNull);
+        return b.compact();
     }
 
-    // 토큰에서 사용자명(email) 추출
-    public String getUsername(String token) {
-        return parseClaims(token).getSubject();
+    public Jws<Claims> parseJws(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .setAllowedClockSkewSeconds(60)
+                .build()
+                .parseClaimsJws(token);
     }
 
-    // 토큰 유효성 검증
+    public String getUsername(String token) { return parseJws(token).getBody().getSubject(); }
+
+    public String getJti(String token) { return parseJws(token).getBody().getId(); }
+
+    public boolean isExpired(String token) {
+        Date exp = parseJws(token).getBody().getExpiration();
+        return exp.before(new Date());
+    }
+
     public boolean validateToken(String token) {
         try {
-            parseClaims(token);
+            parseJws(token); // 서명, 만료, 변조 여부 검증
             return true;
         } catch (ExpiredJwtException e) {
-            System.out.println("JWT expired");
+            System.out.println("JWT expired: " + e.getMessage());
         } catch (JwtException | IllegalArgumentException e) {
             System.out.println("Invalid JWT: " + e.getMessage());
         }
         return false;
     }
 
-    private Claims parseClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+
+    public String newJti() { return UUID.randomUUID().toString(); }
+
+    public Instant getExpiryInstant(String token) {
+        return parseJws(token).getBody().getExpiration().toInstant();
     }
 }
+
