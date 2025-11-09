@@ -28,13 +28,14 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     private static final String[] PUBLIC_URLS = {
+            "/actuator/health", "/actuator/health/**", "/actuator/info",
             "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
             "/", "/terms", "/privacy", "/css/**", "/js/**", "/images/**",
             "/v1/auth/login", "/v1/users/signup",
             "/api/v1/auth/login", "/api/v1/users/signup",
             "/api/v1/users/check-email", "/api/v1/users/check-nickname",
             "/v1/users/check-email", "/v1/users/check-nickname",
-            "/files/**"
+            "/files/**", "/", "/favicon.ico", "/error"
     };
 
     @Bean
@@ -80,7 +81,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "http://3.36.180.192",
+                "http://3.36.180.192:3000",
+                "http://community-a-feast-of-n.e.kr",
+                "http://community-a-feast-of-n.e.kr:3000"
+        ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
