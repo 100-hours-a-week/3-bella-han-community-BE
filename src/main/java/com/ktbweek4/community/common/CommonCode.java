@@ -45,6 +45,7 @@ public enum CommonCode {
     COMMENT_UPDATED("CM204", "댓글이 수정되었습니다.", HttpStatus.OK),
     COMMENT_DELETED("CM205", "댓글이 삭제되었습니다.", HttpStatus.OK),
     COMMENT_NOT_FOUND("CM404", "댓글을 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
+    COMMENT_VIEW("CM206", "댓글 조회 성공했습니다.", HttpStatus.OK),
 
     /* ====== Like 관련 코드 ====== */
     LIKE_ADDED("L201", "좋아요가 추가되었습니다.", HttpStatus.CREATED),
@@ -60,7 +61,13 @@ public enum CommonCode {
     TOKEN_EXPIRED("A401", "토큰이 만료되었습니다.", HttpStatus.UNAUTHORIZED),
     TOKEN_INVALID("A403", "유효하지 않은 토큰입니다.", HttpStatus.FORBIDDEN),
     LOGIN_SUCCESS("A200", "로그인에 성공했습니다.", HttpStatus.OK),
-    LOGOUT_SUCCESS("A205", "로그아웃에 성공했습니다.", HttpStatus.OK);
+    LOGOUT_SUCCESS("A205", "로그아웃에 성공했습니다.", HttpStatus.OK),
+
+    /* ====== Auth 관련 코드 ====== */
+    REFRESH_SUCCESS("A201", "토큰이 성공적으로 재발급되었습니다.", HttpStatus.OK),
+    REFRESH_FAILED("A401", "리프레시 토큰이 유효하지 않거나 만료되었습니다.", HttpStatus.UNAUTHORIZED),
+    UNAUTHORIZED_ACCESS("A402", "인증이 필요합니다.", HttpStatus.UNAUTHORIZED);
+
 
     private final String code;
     private final String message;

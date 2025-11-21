@@ -43,6 +43,7 @@ public class PostEntity extends BaseTimeEntity {
     // post 1 : N comment (글 삭제 시 댓글도 함께 제거)
     @Builder.Default
     @OneToMany(mappedBy = "post", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OrderBy("createdAt ASC") // 댓글 리스트 항상 오래된 순으로 정렬해서 로딩
     private List<Comment> comments = new ArrayList<>();
 
     // post 1 : N postImage (연결/순서 관리 같이 함)
@@ -51,8 +52,12 @@ public class PostEntity extends BaseTimeEntity {
     private List<PostImageEntity> postImages = new ArrayList<>();
 
     // post 1 : 1 postviewCount
-    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private PostViewCountEntity viewCount;
+//    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+//    private PostViewCountEntity viewCount;
+
+    @Builder.Default
+    @Column(name = "view_count", columnDefinition = "BIGINT UNSIGNED DEFAULT 0", nullable = false)
+    private Long viewCount = 0L;
 
     public void addImage(PostImageEntity image) {
         this.getPostImages().add(image);
