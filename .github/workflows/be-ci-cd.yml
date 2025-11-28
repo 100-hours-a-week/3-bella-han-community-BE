@@ -31,13 +31,12 @@ jobs:
           username: ${{ secrets.REGISTRY_USER }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Build Docker Image
+      - name: Build and Push Docker Image (buildx)
         run: |
-          docker build -t ${{ secrets.REGISTRY_URL }}/backend:latest .
-
-      - name: Push Docker Image
-        run: |
-          docker push ${{ secrets.REGISTRY_URL }}/backend:latest
+          docker buildx create --use
+          docker buildx build --platform linux/amd64 \
+            -t ${{ secrets.REGISTRY_URL }}/backend:latest \
+            --push .
 
   deploy:
     needs: build-and-push
@@ -49,11 +48,8 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          
-          # 바스티온 known_hosts 등록
           ssh-keyscan ${{ secrets.BASTION_HOST }} >> ~/.ssh/known_hosts
 
-      # 바스티온 -> 백엔드 프라이빗 서버로 ProxyJump
       - name: Deploy Backend via Bastion Proxy
         run: |
           ssh -o StrictHostsKeyChecking=no \
