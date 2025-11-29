@@ -72,6 +72,9 @@ jobs:
           -o ProxyJump=ubuntu@$BASTION_IP \
           ubuntu@$BACKEND_IP "echo BACKEND OK"
 
+      - name: Debug BACKEND_IP
+        run: |
+          echo "BACKEND_IP=[$BACKEND_IP]"
 
           ssh -o StrictHostKeyChecking=no \
             -o ProxyJump=ubuntu@${{ secrets.BASTION_HOST }} \
