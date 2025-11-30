@@ -6,9 +6,33 @@ on:
       - main
 
 jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
 
+  # -----------------------------
+  # 1) TEST (CI)
+  # -----------------------------
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout backend code
+        uses: actions/checkout@v3
+
+      - name: Setup JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Run Unit Tests
+        run: |
+          chmod +x ./gradlew
+          ./gradlew test --info
+          
+  # -----------------------------
+  # 2) BUILD JAR (CI)
+  # -----------------------------
+  build:
+    needs: test
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout backend code
         uses: actions/checkout@v3
@@ -22,16 +46,39 @@ jobs:
       - name: Build JAR
         run: |
           chmod +x ./gradlew
-          ./gradlew clean build 
+          ./gradlew clean build
 
-      - name: Docker Login (Private Registry)
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: build/libs/*.jar
+
+  # -----------------------------
+  # 3) DOCKER BUILD + PUSH (CD)
+  # -----------------------------
+  push-image:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout backend code
+        uses: actions/checkout@v3
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: .
+
+      - name: Docker Login
         uses: docker/login-action@v3
         with:
           registry: ${{ secrets.REGISTRY_URL }}
           username: ${{ secrets.REGISTRY_USER }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Build Docker Image (multi-stage)
+      - name: Build Docker Image
         run: |
           docker build -t ${{ secrets.REGISTRY_URL }}/backend:latest .
 
@@ -39,46 +86,27 @@ jobs:
         run: |
           docker push ${{ secrets.REGISTRY_URL }}/backend:latest
 
+  # -----------------------------
+  # 4) DEPLOY to EC2 (CD)
+  # -----------------------------
   deploy:
-    needs: build-and-push
+    needs: push-image
     runs-on: ubuntu-latest
 
     steps:
-      # -------------------------
-      # SSH KEY 준비
-      # -------------------------
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-
           eval "$(ssh-agent -s)"
           ssh-add ~/.ssh/id_ed25519
 
-      # -------------------------
-      # known_hosts 등록 
-      # -------------------------
-      - name: Add Backend to known_hosts
+      - name: Add host
         run: |
-          ssh-keyscan -4 -H ${{ secrets.BACKEND_IP }} >> ~/.ssh/known_hosts || true
+          ssh-keyscan -H ${{ secrets.BACKEND_IP }} >> ~/.ssh/known_hosts
 
-      # -------------------------
-      # SSH 접속 테스트 (직접)
-      # -------------------------
-      - name: Test SSH Direct to Backend
-        run: |
-          ssh -i ~/.ssh/id_ed25519 \
-              -o StrictHostKeyChecking=no \
-              ubuntu@${{ secrets.BACKEND_IP }} \
-              "echo BACKEND SSH OK"
-
-      # -------------------------
-      # 컨테이너 배포 (Pull + Restart)
-      # -------------------------
       - name: Deploy Backend
         run: |
-          ssh -i ~/.ssh/id_ed25519 \
-              -o StrictHostKeyChecking=no \
-              ubuntu@${{ secrets.BACKEND_IP }} \
-              "cd /home/ubuntu && docker compose pull backend && docker compose up -d backend"
+          ssh ubuntu@${{ secrets.BACKEND_IP }} \
+            "cd /home/ubuntu && docker compose pull backend && docker compose up -d backend"
