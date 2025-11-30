@@ -35,7 +35,7 @@ public class SecurityConfig {
             "/api/v1/auth/login", "/api/v1/users/signup",
             "/api/v1/users/check-email", "/api/v1/users/check-nickname",
             "/v1/users/check-email", "/v1/users/check-nickname",
-            "/files/**", "/", "/favicon.ico", "/error"
+            "/files/**", "/", "/favicon.ico", "/error", "/api/health", "/actuator/**"
     };
 
     @Bean
