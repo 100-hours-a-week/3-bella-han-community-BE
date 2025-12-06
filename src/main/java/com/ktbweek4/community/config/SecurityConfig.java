@@ -31,10 +31,10 @@ public class SecurityConfig {
             "/actuator/health", "/actuator/health/**", "/actuator/info",
             "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
             "/", "/terms", "/privacy", "/css/**", "/js/**", "/images/**",
-            "/v1/auth/login", "/v1/users/signup",
             "/api/v1/auth/login", "/api/v1/users/signup",
             "/api/v1/users/check-email", "/api/v1/users/check-nickname",
             "/v1/users/check-email", "/v1/users/check-nickname",
+            "/v1/auth/login", "/v1/users/signup",
             "/files/**", "/", "/favicon.ico", "/error", "/api/health", "/actuator/**"
     };
 
