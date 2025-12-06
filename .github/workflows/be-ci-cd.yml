@@ -55,7 +55,7 @@ jobs:
           path: build/libs/*.jar
 
   # -----------------------------
-  # 3) DOCKER BUILD + PUSH (CD)
+  # 3) ECR LOGIN + BUILD + PUSH
   # -----------------------------
   push-image:
     needs: build
@@ -65,26 +65,32 @@ jobs:
       - name: Checkout backend code
         uses: actions/checkout@v3
 
-      - name: Download JAR artifact
+      - name: Download JAR
         uses: actions/download-artifact@v4
         with:
           name: backend-jar
           path: .
 
-      - name: Docker Login
-        uses: docker/login-action@v3
+      # AWS 로그인 설정
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          registry: ${{ secrets.REGISTRY_URL }}
-          username: ${{ secrets.REGISTRY_USER }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # ECR 로그인
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build Docker Image
         run: |
-          docker build -t ${{ secrets.REGISTRY_URL }}/backend:latest .
+          docker build -t ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPO }}:latest .
 
-      - name: Push Docker Image
+      - name: Push to ECR
         run: |
-          docker push ${{ secrets.REGISTRY_URL }}/backend:latest
+          docker push ${{ secrets.AWS_ECR_REGISTRY }}/${{ secrets.AWS_ECR_REPO }}:latest
 
   # -----------------------------
   # 4) DEPLOY to EC2 (CD)
@@ -99,14 +105,17 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          eval "$(ssh-agent -s)"
-          ssh-add ~/.ssh/id_ed25519
-
-      - name: Add host
-        run: |
           ssh-keyscan -H ${{ secrets.BACKEND_IP }} >> ~/.ssh/known_hosts
 
-      - name: Deploy Backend
+      - name: Pull & Restart Backend
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ECR_REGISTRY: ${{ secrets.AWS_ECR_REGISTRY }}
         run: |
-          ssh ubuntu@${{ secrets.BACKEND_IP }} \
-            "cd /home/ubuntu && docker compose pull backend && docker compose up -d backend"
+          ssh ubuntu@${{ secrets.BACKEND_IP }} "
+            aws ecr get-login-password --region ${AWS_REGION} \
+              | docker login --username AWS --password-stdin ${AWS_ECR_REGISTRY} &&
+            cd /home/ubuntu &&
+            docker compose pull backend &&
+            docker compose up -d backend
+          "
