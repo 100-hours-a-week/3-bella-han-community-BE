@@ -24,6 +24,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
+        System.out.println("🔥 JWT shouldNotFilter check — URI: " + uri);
 
         return uri.startsWith("/api/v1/users/signup") ||
                 uri.startsWith("/api/v1/users/check-email") ||
