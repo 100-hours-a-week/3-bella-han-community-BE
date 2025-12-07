@@ -78,8 +78,11 @@ public class SecurityConfig {
 
                         // 5) 파일 조회도 비로그인 허용
                         .requestMatchers(HttpMethod.GET, "/api/v1/files/**").permitAll()
+                        
+                        // 6) 파일 업로드는 인증 필요 (회원가입 시 프로필 이미지 업로드도 가능하도록 허용)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/files/upload").permitAll()
 
-                        // 6) 나머지는 인증 필요 (POST, PUT, DELETE 등)
+                        // 7) 나머지는 인증 필요 (PUT, DELETE 등)
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
