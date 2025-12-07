@@ -100,7 +100,9 @@ public class SecurityConfig {
                 "http://3.36.180.192",
                 "http://3.36.180.192:3000",
                 "http://community-a-feast-of-n.e.kr",
-                "http://community-a-feast-of-n.e.kr:3000"
+                "http://community-a-feast-of-n.e.kr:3000",
+                "https://community-a-feast-of.n-e.kr",      // ★ 추가
+                "https://community-a-feast-of.n-e.kr:3000"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
