@@ -26,17 +26,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
 
-        return uri.startsWith("/api/v1/users/signup") ||
+        return uri.equals("/api/v1/users/signup") ||
                 uri.startsWith("/api/v1/users/check-email") ||
                 uri.startsWith("/api/v1/users/check-nickname") ||
-                uri.startsWith("/api/v1/auth/login") ||
-                uri.startsWith("/api/v1/auth/refresh") ||
-                uri.startsWith("/api/v1/auth/logout") ||
+                uri.equals("/api/v1/auth/login") ||
+                uri.equals("/api/v1/auth/refresh") ||
+                uri.equals("/api/v1/auth/logout") ||
                 uri.startsWith("/swagger") ||
                 uri.startsWith("/v3/api-docs") ||
-                uri.startsWith("/css") ||
-                uri.startsWith("/js") ||
-                uri.startsWith("/images") ||
+                uri.startsWith("/css/") ||
+                uri.startsWith("/js/") ||
+                uri.startsWith("/images/") ||
                 uri.equals("/") ||
                 uri.equals("/favicon.ico");
     }
