@@ -47,11 +47,16 @@ public class UserService {
         // 비밀번호 암호화
         String encodedPassword = passwordEncoder.encode(request.getPassword());
 
+        // 프로필 이미지 URL 처리: 전달된 URL이 있으면 사용, 없으면 기본 이미지
+        String profileUrl = (request.getProfileImageUrl() != null && !request.getProfileImageUrl().trim().isEmpty())
+                ? request.getProfileImageUrl()
+                : defaultAvatarUrl;
+
         User user = User.builder()
                 .email(request.getEmail())
                 .nickname(request.getNickname())
                 .password(encodedPassword)
-                .userProfileUrl(null)
+                .userProfileUrl(profileUrl)
                 .build();
 
         User saved = userRepository.save(user);
