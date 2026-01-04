@@ -131,10 +131,10 @@ jobs:
           scp -o StrictHostKeyChecking=no docker-compose.prod.yml ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }}:/home/${{ secrets.RASPBERRY_USER }}/docker-compose.yml
           ssh -o StrictHostKeyChecking=no ${{ secrets.RASPBERRY_USER }}@${{ secrets.RASPBERRY_HOST }} "
             cat > .env << 'EOF'
-MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
-MYSQL_USER=${{ secrets.MYSQL_USER }}
-MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-EOF
+              MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+              MYSQL_USER=${{ secrets.MYSQL_USER }}
+              MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+          EOF
           "
 
       - name: Setup SSH
